@@ -11,4 +11,21 @@ module.exports = {
       }
     },
   },
+  Mutation: {
+    register: async (_parent, args, _context, _info) => {
+      const { username, email, password, confirmPassword } = args;
+
+      try {
+        const user = await User.create({
+          username,
+          email,
+          password,
+        });
+        return user;
+      } catch (error) {
+        console.log(error);
+        throw error;
+      }
+    },
+  },
 };
