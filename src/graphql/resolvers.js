@@ -1,17 +1,39 @@
 const bcrypt = require("bcryptjs");
 const { UserInputError, AuthenticationError } = require("apollo-server");
+const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 
 const { User } = require("../../models");
 const capitalize = require("../utils/capitalize");
 
 module.exports = {
   Query: {
-    getUsers: async (_parent, _args, _context, _info) => {
+    getUsers: async (_parent, _args, context, _info) => {
       try {
-        const users = await User.findAll();
+        let user;
+
+        if (context.req && context.req.headers.authorization) {
+          const token = context.req.headers.authorization.split("Bearer ")[1];
+          jwt.verify(token, process.env.JWT_SECRET, (error, decodedToken) => {
+            if (error) {
+              throw new AuthenticationError("Unauthenticated");
+            }
+            user = decodedToken;
+            console.log(user);
+          });
+        }
+
+        const users = await User.findAll({
+          where: {
+            username: {
+              [Op.ne]: user.username,
+            },
+          },
+        });
         return users;
       } catch (error) {
         console.log(JSON.stringify(error, null, 2));
+        throw error;
       }
     },
     login: async (_parent, args, _context, _info) => {
@@ -44,7 +66,22 @@ module.exports = {
           throw new AuthenticationError("Incorrect Password", { errors });
         }
 
-        return user;
+        const token = jwt.sign(
+          {
+            username,
+          },
+          process.env.JWT_SECRET,
+          {
+            expiresIn: 60 * 60,
+          },
+        );
+
+        return {
+          ...user.toJSON(),
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString(),
+          token,
+        };
       } catch (error) {
         console.log(JSON.stringify(error, null, 2));
         throw error;
