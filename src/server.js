@@ -16,7 +16,7 @@ server.listen().then(({ url }) => {
     .then(() => {
       console.log("Database connected");
     })
-    .catch((err) => {
-      console.log(err);
+    .catch((error) => {
+      console.log(JSON.stringify(error, null, 2));
     });
 });
