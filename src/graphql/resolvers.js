@@ -3,24 +3,15 @@ const { UserInputError, AuthenticationError } = require("apollo-server");
 const jwt = require("jsonwebtoken");
 const { Op } = require("sequelize");
 
-const { User } = require("../../models");
+const { User, Message } = require("../../models");
 const capitalize = require("../utils/capitalize");
 
 module.exports = {
   Query: {
-    getUsers: async (_parent, _args, context, _info) => {
+    getUsers: async (_parent, _args, { user }, _info) => {
       try {
-        let user;
-
-        if (context.req && context.req.headers.authorization) {
-          const token = context.req.headers.authorization.split("Bearer ")[1];
-          jwt.verify(token, process.env.JWT_SECRET, (error, decodedToken) => {
-            if (error) {
-              throw new AuthenticationError("Unauthenticated");
-            }
-            user = decodedToken;
-            console.log(user);
-          });
+        if (!user) {
+          throw new AuthenticationError("Unauthenticated");
         }
 
         const users = await User.findAll({
@@ -137,6 +128,39 @@ module.exports = {
           });
         }
         throw new UserInputError("Bad Input", { errors });
+      }
+    },
+    sendMessage: async (_parent, { to, content }, { user }, _info) => {
+      try {
+        if (!user) {
+          throw new AuthenticationError("Unauthenticated");
+        }
+
+        const recipient = await User.findOne({
+          where: {
+            username: to,
+          },
+        });
+
+        if (!recipient) {
+          throw new UserInputError("User not found");
+        } else if (recipient.username === user.username) {
+          throw new UserInputError("You can't message yourself");
+        }
+
+        if (content.trim() === "") {
+          throw new UserInputError("Message is empty");
+        }
+
+        const message = await Message.create({
+          from: user.username,
+          to,
+          content,
+        });
+        return message;
+      } catch (error) {
+        console.log(error);
+        throw error;
       }
     },
   },

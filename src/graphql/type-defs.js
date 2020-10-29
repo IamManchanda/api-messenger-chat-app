@@ -4,9 +4,8 @@ module.exports = gql`
   type User {
     username: String!
     email: String!
-    createdAt: String!
-    updatedAt: String!
     token: String
+    createdAt: String!
   }
 
   type Message {
@@ -14,6 +13,7 @@ module.exports = gql`
     content: String!
     from: String!
     to: String!
+    createdAt: String!
   }
 
   type Query {
