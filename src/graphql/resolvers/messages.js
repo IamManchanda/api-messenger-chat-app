@@ -75,7 +75,9 @@ module.exports = {
           content,
         });
 
-        pubsub.publish("NEW_MESSAGE", { newMessage: message });
+        pubsub.publish("NEW_MESSAGE", {
+          newMessage: message,
+        });
 
         return message;
       } catch (error) {
@@ -83,7 +85,12 @@ module.exports = {
         throw error;
       }
     },
-    reactToMessage: async (_parent, { uuid, content }, { user }, _info) => {
+    reactToMessage: async (
+      _parent,
+      { uuid, content },
+      { user, pubsub },
+      _info,
+    ) => {
       const reactions = ["❤️", "😆", "😯", "😢", "😡", "👍", "👎"];
 
       try {
@@ -135,6 +142,10 @@ module.exports = {
           });
         }
 
+        pubsub.publish("NEW_REACTION", {
+          newReaction: reaction,
+        });
+
         return reaction;
       } catch (error) {
         throw error;
@@ -148,13 +159,31 @@ module.exports = {
           if (!user) {
             throw new AuthenticationError("Unauthenticated");
           }
-          return pubsub.asyncIterator(["NEW_MESSAGE"]);
+          return pubsub.asyncIterator("NEW_MESSAGE");
         },
         ({ newMessage }, _args, { user }, _info) => {
           if (
             newMessage.from === user.username ||
             newMessage.to === user.username
           ) {
+            return true;
+          }
+          return false;
+        },
+      ),
+    },
+    newReaction: {
+      subscribe: withFilter(
+        (_parent, _args, { pubsub, user }, _info) => {
+          if (!user) {
+            throw new AuthenticationError("Unauthenticated");
+          }
+          return pubsub.asyncIterator("NEW_REACTION");
+        },
+        async ({ newReaction }, _args, { user }, _info) => {
+          const message = await newReaction.getMessage();
+
+          if (message.from === user.username || message.to === user.username) {
             return true;
           }
           return false;
