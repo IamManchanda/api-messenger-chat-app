@@ -86,8 +86,6 @@ module.exports = {
 
         return {
           ...user.toJSON(),
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString(),
           token,
         };
       } catch (error) {
