@@ -37,6 +37,12 @@ module.exports = {
             },
           },
           order: [["createdAt", "DESC"]],
+          include: [
+            {
+              model: Reaction,
+              as: "reactions",
+            },
+          ],
         });
 
         return messages;
